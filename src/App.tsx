@@ -283,6 +283,7 @@ export default function App() {
               patients={patients}
               doctors={doctors}
               selectedPatientId={selectedPatientId}
+              onTriggerToast={(title, desc, type) => addToast(title, desc, type)}
             />
           )}
 
@@ -304,7 +305,11 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'api_gateway' && <ApiGatewayView />}
+          {currentTab === 'api_gateway' && (
+            <ApiGatewayView
+              onTriggerToast={(title, desc, type) => addToast(title, desc, type)}
+            />
+          )}
         </main>
       </div>
 

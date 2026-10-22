@@ -183,3 +183,15 @@ export interface ToastMessage {
   description: string;
   type: 'success' | 'warning' | 'emergency' | 'info';
 }
+
+export interface ApiKeyItem {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  fullKey: string;
+  createdAt: string;
+  lastUsed: string;
+  status: 'active' | 'locked';
+  scopes: string[];
+  rateLimit: string;
+}

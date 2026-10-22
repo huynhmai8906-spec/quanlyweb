@@ -1,6 +1,10 @@
 {
   "name": "GrandCare Hospital - Quản Lý Bệnh Nhân & Hồ Sơ EHR Master",
   "description": "Hệ thống quản lý bệnh viện quốc tế GrandCare: Hồ sơ EHR HL7/FHIR, Kho Dược, Hội đồng Y khoa, Telehealth, Sơ đồ phòng & Giường bệnh, Điều phối Cấp cứu 115 Dijkstra GPS.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "display-capture"
+  ],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -37,6 +37,10 @@ const TAB_TITLES: Record<NavigationTab, { title: string; subtitle: string }> = {
     title: 'Trung Tâm Điều Phối Cấp Cứu 115 & Dijkstra GPS',
     subtitle: 'Cấp Cứu Thời Gian Vàng - Tối Ưu Lộ Trình Xe Cứu Thương Ngoại Viện',
   },
+  online_orders: {
+    title: 'Đơn Đặt Từ Web Khách Hàng',
+    subtitle: 'Đồng Bộ Thời Gian Thực Qua Database Supabase Dùng Chung',
+  },
   api_gateway: {
     title: 'Cổng Liên Kết 2-Web & HL7/FHIR API Gateway',
     subtitle: 'Giao Thức Đồng Bộ Hai Chiều GoCare Central Hub & Resort Vệ Tinh',

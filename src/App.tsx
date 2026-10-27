@@ -32,6 +32,7 @@ import { TelehealthView } from './components/TelehealthView';
 import { RoomsView } from './components/RoomsView';
 import { EmergencyView } from './components/EmergencyView';
 import { ApiGatewayView } from './components/ApiGatewayView';
+import { OnlineOrdersView } from './components/OnlineOrdersView';
 import { Toast } from './components/Toast';
 
 export default function App() {
@@ -301,6 +302,12 @@ export default function App() {
           {currentTab === 'emergency' && (
             <EmergencyView
               ambulances={ambulances}
+              onTriggerToast={(title, desc, type) => addToast(title, desc, type)}
+            />
+          )}
+
+          {currentTab === 'online_orders' && (
+            <OnlineOrdersView
               onTriggerToast={(title, desc, type) => addToast(title, desc, type)}
             />
           )}

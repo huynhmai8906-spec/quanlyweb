@@ -6,7 +6,57 @@ export type NavigationTab =
   | 'telehealth'
   | 'rooms'
   | 'emergency'
-  | 'api_gateway';
+  | 'api_gateway'
+  | 'online_orders';
+
+// Rows from the shared Supabase database (written by the customer site)
+export interface NursingBookingRow {
+  id: string;
+  user_id: string | null;
+  patient_name: string;
+  phone: string;
+  address: string;
+  service_id: string | null;
+  service_name: string;
+  price: number;
+  nurse_name: string | null;
+  nurse_cchn: string | null;
+  urgency: 'immediate' | 'scheduled';
+  scheduled_at: string | null;
+  medical_note: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface ServiceOrderRow {
+  id: string;
+  user_id: string | null;
+  customer_email: string | null;
+  items: { name?: string; title?: string; price: number }[];
+  total: number;
+  status: string;
+  created_at: string;
+}
+
+export interface TriageReportRow {
+  id: string;
+  user_id: string;
+  pain_level: number;
+  urgent: boolean;
+  created_at: string;
+}
+
+export interface PatientProfileRow {
+  id: string;
+  user_id: string;
+  full_name: string | null;
+  birth_year: number | null;
+  gender: string | null;
+  guardian_name: string | null;
+  emergency_phone: string | null;
+  service_need: string | null;
+  created_at: string;
+}
 
 export interface VitalSigns {
   hr: number;

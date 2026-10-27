@@ -70,6 +70,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: 'bg-emergency-red/10 text-emergency-red',
     },
     {
+      key: 'online_orders',
+      label: 'Đơn Từ Web Khách Hàng',
+      icon: 'shopping_cart_checkout',
+      badge: 'LIVE DB',
+      badgeColor: 'bg-emerald-100 text-emerald-800',
+    },
+    {
       key: 'api_gateway',
       label: 'Cổng Liên Kết 2-Web & API',
       icon: 'hub',

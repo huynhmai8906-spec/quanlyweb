@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavigationTab, Patient } from '../types';
+import { APP_IMAGES, SAFE_FALLBACK_AVATAR } from '../assets/images';
 
 interface DashboardViewProps {
   onNavigateTab: (tab: NavigationTab) => void;
@@ -18,19 +19,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="p-gutter lg:p-margin flex flex-col gap-space-xl max-w-7xl mx-auto w-full">
       {/* Hero Banner Card */}
       <div className="relative overflow-hidden rounded-2xl bg-surface-container-lowest shadow-md border border-outline-variant/30 flex flex-col lg:flex-row">
-        <div className="lg:w-7/12 relative min-h-[320px] lg:min-h-[440px] overflow-hidden">
+        <div className="lg:w-7/12 relative min-h-[320px] lg:min-h-[440px] overflow-hidden bg-slate-900">
           <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHSGsrks7oPp7spM0_5ss64YmVOipRdx_iSaA72ryBHOT8B_"
-            alt="Tổ Hợp Y Tế Quốc Tế GrandCare"
+            src={APP_IMAGES.hospitalResortHero}
+            alt="Tổ Hợp Y Tế Quốc Tế GoCare"
             className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.opacity = '0.7';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent lg:hidden flex flex-col justify-end p-6 text-white">
             <span className="text-xs uppercase tracking-widest text-emerald-300 font-bold mb-1">
               Tiêu Chuẩn JCI Hoa Kỳ & Nghỉ Dưỡng 5 Sao
             </span>
             <h3 className="text-2xl font-bold font-serif leading-tight">
-              Viện Quốc Tế GrandCare
+              Viện Quốc Tế GoCare
             </h3>
           </div>
         </div>
@@ -42,7 +46,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>Tổ Hợp Y Khoa Lâm Sàng Đa Mô Thức</span>
             </div>
             <h2 className="font-display-lg text-2xl lg:text-3xl text-primary font-bold leading-snug tracking-tight mb-3">
-              Tổ Hợp Y Tế Quốc Tế & Nghỉ Dưỡng Lão Khoa GrandCare
+              Tổ Hợp Y Tế Quốc Tế & Nghỉ Dưỡng Lão Khoa GoCare
             </h2>
             <p className="font-body-md text-sm text-on-surface-variant leading-relaxed mb-4">
               Tiên phong mô hình kết hợp bệnh viện đa khoa chuyên sâu chuẩn JCI và khu an dưỡng trị liệu 5 sao ven sông Sài Gòn. Hệ thống số hoá toàn diện với chuẩn liên thông dữ liệu lâm sàng HL7 v2.5.1 và FHIR R4.
@@ -111,12 +115,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => onNavigateTab('rooms')}
             className="group rounded-2xl bg-surface-container-lowest border border-outline-variant/30 overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col"
           >
-            <div className="relative h-48 overflow-hidden">
+            <div className="relative h-48 overflow-hidden bg-slate-900">
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCslqAYiyWLCWhPLMsqHwjZraPb9HV2CfhGrwoqlw2ZHEL1x1"
+                src={APP_IMAGES.vipHospitalSuite}
                 alt="Phòng Tổng Thống VIP"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.opacity = '0.7';
+                }}
               />
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-bold">
                 Khu Đông VIP
@@ -145,12 +152,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => onNavigateTab('rooms')}
             className="group rounded-2xl bg-surface-container-lowest border border-outline-variant/30 overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col"
           >
-            <div className="relative h-48 overflow-hidden">
+            <div className="relative h-48 overflow-hidden bg-slate-900">
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmBiSwuT3eXWIMBrXXhCEM22A8AvMQ5HhbR2_8ADZwRJTTDW"
+                src={APP_IMAGES.hospitalIcuRoom}
                 alt="ICU Cấp Độ 1"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.opacity = '0.7';
+                }}
               />
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-bold">
                 Khu Cấp Cứu ICU
@@ -179,12 +189,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={() => onNavigateTab('telehealth')}
             className="group rounded-2xl bg-surface-container-lowest border border-outline-variant/30 overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col"
           >
-            <div className="relative h-48 overflow-hidden">
+            <div className="relative h-48 overflow-hidden bg-slate-900">
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3Pi9CT6ZxdzNGVLmzt3-8EndqMEHXjSbAC-pfU8cfGSTt7C"
+                src={APP_IMAGES.hospitalZenGarden}
                 alt="Vườn Thiền Trị Liệu"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.opacity = '0.7';
+                }}
               />
               <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[11px] font-bold">
                 Khu Tây Lão Khoa
@@ -308,10 +321,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img
-                    src={pat.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU'}
+                    src={pat.avatar || APP_IMAGES.defaultPatient}
                     alt={pat.name}
                     className="w-10 h-10 rounded-full object-cover border border-outline-variant/30 shrink-0"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                    }}
                   />
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-on-surface truncate">{pat.name}</div>

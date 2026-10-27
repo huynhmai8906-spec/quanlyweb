@@ -39,7 +39,7 @@ const TAB_TITLES: Record<NavigationTab, { title: string; subtitle: string }> = {
   },
   api_gateway: {
     title: 'Cổng Liên Kết 2-Web & HL7/FHIR API Gateway',
-    subtitle: 'Giao Thức Đồng Bộ Hai Chiều GrandCare Central Hub & Resort Vệ Tinh',
+    subtitle: 'Giao Thức Đồng Bộ Hai Chiều GoCare Central Hub & Resort Vệ Tinh',
   },
 };
 
@@ -77,19 +77,26 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-surface-clean/95 backdrop-blur-md border-b border-outline-variant/30 px-6 py-3.5 flex items-center justify-between shadow-xs">
       {/* Title & subtitle */}
-      <div className="flex flex-col min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-label-sm text-[11px] font-bold text-primary tracking-wider uppercase">
-            GrandCare System
-          </span>
-          <span className="text-on-surface-variant/40">/</span>
-          <span className="font-label-sm text-[11px] font-medium text-on-surface-variant truncate">
+      <div className="flex items-center gap-3 min-w-0">
+        <img
+          src="/assets/aistudio/image_8e7aadb2.png"
+          alt="GoCare"
+          className="h-9 w-auto object-contain hidden sm:block bg-white rounded-lg p-1 border border-outline-variant/30 shadow-xs shrink-0"
+        />
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-label-sm text-[11px] font-bold text-[#0066CC] tracking-wider uppercase">
+              GoCare System
+            </span>
+            <span className="text-on-surface-variant/40">/</span>
+            <span className="font-label-sm text-[11px] font-medium text-on-surface-variant truncate">
+              {meta.title}
+            </span>
+          </div>
+          <h2 className="font-headline-sm text-lg lg:text-xl text-primary font-bold tracking-tight truncate">
             {meta.title}
-          </span>
+          </h2>
         </div>
-        <h2 className="font-headline-sm text-lg lg:text-xl text-primary font-bold tracking-tight truncate">
-          {meta.title}
-        </h2>
       </div>
 
       {/* Center search bar */}

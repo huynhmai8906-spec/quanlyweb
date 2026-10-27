@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Patient, Doctor } from '../types';
+import { APP_IMAGES, SAFE_FALLBACK_AVATAR } from '../assets/images';
 
 interface TelehealthViewProps {
   patients: Patient[];
@@ -516,10 +517,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                         /* Virtual Doctor Video Simulation with realistic clinical HUD */
                         <div className="w-full h-full relative bg-gradient-to-br from-slate-900 via-slate-950 to-[#00201e] flex items-center justify-center overflow-hidden">
                           <img
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                            src={APP_IMAGES.doctorVietnameseMale}
                             alt="Doctor Feed"
                             className="w-full h-full object-cover opacity-90 scale-x-[-1]"
                             referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                            }}
                           />
                           {/* Face Recognition & Telemetry Overlay */}
                           <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between">
@@ -551,10 +555,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                       {/* Cleveland Clinic Specialist */}
                       <div className="w-32 sm:w-44 h-24 sm:h-28 rounded-xl bg-slate-800 border-2 border-primary/80 overflow-hidden shadow-lg relative group">
                         <img
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNccWQrK2-6vrKLBFBCoH3rcaqeTt3TH3W7Vxovxuq-t4PY2"
+                          src={APP_IMAGES.doctorInternationalMale}
                           alt="Dr. Robert Miller"
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                          }}
                         />
                         <div className="absolute bottom-1 inset-x-1.5 text-[9px] bg-black/70 px-1.5 py-0.5 rounded text-white font-medium truncate">
                           Dr. Miller (Cleveland Clinic)
@@ -564,10 +571,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                       {/* Johns Hopkins Specialist */}
                       <div className="w-32 sm:w-44 h-24 sm:h-28 rounded-xl bg-slate-800 border-2 border-slate-700 overflow-hidden shadow-lg relative group">
                         <img
-                          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxNACeICO56gGjqBv1W_kAQVSgWdC99MNl2-qYQXJeVytau3"
+                          src={APP_IMAGES.doctorInternationalFemale}
                           alt="Dr. Sarah Jenkins"
                           className="w-full h-full object-cover"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                          }}
                         />
                         <div className="absolute bottom-1 inset-x-1.5 text-[9px] bg-black/70 px-1.5 py-0.5 rounded text-white font-medium truncate">
                           Dr. Jenkins (Johns Hopkins)
@@ -593,10 +603,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                           />
                         ) : (
                           <img
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                            src={APP_IMAGES.doctorVietnameseMale}
                             alt="Doctor Feed"
                             className="w-full h-full object-cover scale-x-[-1]"
                             referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                            }}
                           />
                         )
                       ) : (
@@ -614,10 +627,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                     {/* Right: Cleveland Clinic */}
                     <div className="relative h-full flex items-center justify-center bg-slate-900 overflow-hidden">
                       <img
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNccWQrK2-6vrKLBFBCoH3rcaqeTt3TH3W7Vxovxuq-t4PY2"
+                        src={APP_IMAGES.doctorInternationalMale}
                         alt="Dr. Robert Miller"
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                        }}
                       />
                       <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded bg-black/70 text-white text-[11px] font-bold">
                         Dr. Robert Miller (Cleveland Clinic)
@@ -630,10 +646,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                 {viewLayout === 'remote_main' && (
                   <div className="w-full h-full relative flex items-center justify-center bg-black">
                     <img
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNccWQrK2-6vrKLBFBCoH3rcaqeTt3TH3W7Vxovxuq-t4PY2"
+                      src={APP_IMAGES.doctorInternationalMale}
                       alt="Dr. Robert Miller - Cleveland Clinic"
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                      }}
                     />
 
                     {/* PIP: Doctor Camera */}
@@ -650,10 +669,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                             />
                           ) : (
                             <img
-                              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                              src={APP_IMAGES.doctorVietnameseMale}
                               alt="Doctor Feed"
                               className="w-full h-full object-cover scale-x-[-1]"
                               referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                              }}
                             />
                           )
                         ) : (
@@ -966,10 +988,13 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                 ) : (
                   <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
                     <img
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                      src={APP_IMAGES.doctorVietnameseMale}
                       alt="Preview"
                       className="w-full h-full object-cover opacity-80"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                      }}
                     />
                     <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
                       <span className="material-symbols-outlined text-[36px] text-emerald-400 mb-1">

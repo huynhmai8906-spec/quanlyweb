@@ -9,6 +9,7 @@ import {
   DijkstraEdge,
   HL7Message,
 } from '../types';
+import { APP_IMAGES } from '../assets/images';
 
 export const INITIAL_PATIENTS: Patient[] = [
   {
@@ -51,7 +52,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       { test: 'eGFR (MDRD)', value: '78.2', unit: 'mL/min/1.73m²', reference: '> 60', status: 'normal' },
       { test: 'K+ Kali huyết thanh', value: '4.3', unit: 'mmol/L', reference: '3.5 - 5.1', status: 'normal' },
     ],
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB947IGp0Sj2ZwjUxj6CetyO6EOScLMDtdqCECMkUlhLV47tn',
+    avatar: APP_IMAGES.seniorPatientPortrait,
   },
   {
     id: 'EHR-2026-1044',
@@ -91,7 +92,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       { test: 'Điện giải Na+', value: '139', unit: 'mmol/L', reference: '135 - 145', status: 'normal' },
       { test: 'Creatinine huyết thanh', value: '88', unit: 'µmol/L', reference: '44 - 80', status: 'high' },
     ],
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA_WFbb0Dwr075Q0QQ0BUenFoKtKjlh6KEH5umv9mqUGlngW9',
+    avatar: APP_IMAGES.patientFemalePortrait,
   },
   {
     id: 'EHR-2026-0773',
@@ -132,7 +133,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       { test: 'LDL-C', value: '1.9', unit: 'mmol/L', reference: '< 2.6', status: 'normal' },
       { test: 'Triglyceride', value: '1.4', unit: 'mmol/L', reference: '< 1.7', status: 'normal' },
     ],
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBQgpNzcdjY0yHFJ5QdhEJqud6bqpMumTFZkc1Tt-nTI-MK0w',
+    avatar: APP_IMAGES.seniorPatientPortrait,
   },
   {
     id: 'EHR-2026-0933',
@@ -171,7 +172,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       { test: 'Troponin T hs', value: '12.8', unit: 'ng/L', reference: '< 14', status: 'normal' },
       { test: 'Kali K+', value: '4.7', unit: 'mmol/L', reference: '3.5 - 5.1', status: 'normal' },
     ],
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB947IGp0Sj2ZwjUxj6CetyO6EOScLMDtdqCECMkUlhLV47tn',
+    avatar: APP_IMAGES.seniorPatientPortrait,
   },
   {
     id: 'EHR-2026-0904',
@@ -210,7 +211,7 @@ export const INITIAL_PATIENTS: Patient[] = [
       { test: 'Khí máu động mạch PaO2', value: '74', unit: 'mmHg', reference: '80 - 100', status: 'low' },
       { test: 'Lactate máu', value: '2.4', unit: 'mmol/L', reference: '< 2.0', status: 'high' },
     ],
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA_WFbb0Dwr075Q0QQ0BUenFoKtKjlh6KEH5umv9mqUGlngW9',
+    avatar: APP_IMAGES.patientFemalePortrait,
   },
 ];
 
@@ -228,7 +229,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     shifts: ['Sáng', 'Đêm C/C'],
     rating: 4.98,
     consultationCount: 1420,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDWqWXQF0lKcR_wVefp_JQrJ0LkpaGKYH28ZnOjs3NPdsMXte',
+    avatar: APP_IMAGES.doctorVietnameseMale,
   },
   {
     id: 'DOC-02',
@@ -243,7 +244,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     shifts: ['Sáng', 'Chiều'],
     rating: 4.95,
     consultationCount: 1180,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDUyELyPOrjtfJCxdmV6MQ9nZO81KwJKmzuolRI0H-fikj-Dy',
+    avatar: APP_IMAGES.doctorVietnameseMale,
   },
   {
     id: 'DOC-03',
@@ -258,7 +259,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     shifts: ['Chiều', 'Đêm C/C'],
     rating: 4.99,
     consultationCount: 960,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAEfLSYGVwWm6lNLu6cPOIffU3zSJysxDoeSCz5rxdeCFJSRH',
+    avatar: APP_IMAGES.doctorVietnameseFemale,
   },
   {
     id: 'DOC-04',
@@ -273,7 +274,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     shifts: ['Sáng', 'Chiều'],
     rating: 4.92,
     consultationCount: 840,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA0tfbH5KRAgc_lcURuugSeStrvk87RpYXyfrdfpyNeK_hYSI',
+    avatar: APP_IMAGES.doctorInternationalMale,
   },
   {
     id: 'DOC-05',
@@ -288,7 +289,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     shifts: ['Sáng'],
     rating: 4.96,
     consultationCount: 1350,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBbcazfzD3XsI9iS049D12Tx6HTT0z0skuRQ-X2AU2hZFR8Yb',
+    avatar: APP_IMAGES.doctorVietnameseFemale,
   },
   {
     id: 'DOC-06',
@@ -303,7 +304,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
     shifts: ['Sáng', 'Chiều', 'Đêm C/C'],
     rating: 4.97,
     consultationCount: 710,
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU',
+    avatar: APP_IMAGES.doctorVietnameseMale,
   },
 ];
 
@@ -648,7 +649,7 @@ export const INITIAL_AMBULANCES: Ambulance[] = [
     leadDoctor: 'TS.BS Nguyễn Quốc Dũng',
     paramedic: 'Nguyễn Thị Hoa',
     status: 'Sẵn sàng',
-    currentLocation: 'Bãi đáp xe GrandCare Central Hub',
+    currentLocation: 'Bãi đáp xe GoCare Central Hub',
     equipment: ['Máy thở Hamilton T1', 'Máy sốc tim Zoll X Series', 'Máy siêu âm Sonosite PX', 'Bơm tiêm điện Alaris x4'],
     batteryPercent: 98,
     fuelPercent: 92,
@@ -696,7 +697,7 @@ export const INITIAL_AMBULANCES: Ambulance[] = [
     leadDoctor: 'ThS.BS Đỗ Thị Thuý',
     paramedic: 'Hoàng Kim Chi',
     status: 'Sẵn sàng',
-    currentLocation: 'Bãi đỗ GrandCare Central Hub',
+    currentLocation: 'Bãi đỗ GoCare Central Hub',
     equipment: ['Cáng thuỷ lực giảm sốc Stryker Power-LOAD', 'Monitor không dây', 'Bình oxy dự trữ 40L', 'Ghế vận chuyển cầu thang điện'],
     batteryPercent: 100,
     fuelPercent: 95,
@@ -704,7 +705,7 @@ export const INITIAL_AMBULANCES: Ambulance[] = [
 ];
 
 export const DIJKSTRA_NODES: DijkstraNode[] = [
-  { id: 'NODE-GRANDCARE', label: 'Bệnh Viện GrandCare (Trung Tâm)', x: 140, y: 150, type: 'hospital' },
+  { id: 'NODE-GRANDCARE', label: 'Bệnh Viện GoCare (Trung Tâm)', x: 140, y: 150, type: 'hospital' },
   { id: 'NODE-ANPHU', label: 'Nút Giao An Phú (Mai Chí Thọ)', x: 300, y: 110, type: 'intersection' },
   { id: 'NODE-BASON', label: 'Cầu Ba Son (Thủ Thiêm 2)', x: 260, y: 250, type: 'intersection' },
   { id: 'NODE-SAIGON_BRIDGE', label: 'Cầu Sài Gòn (Đi Bình Thạnh)', x: 440, y: 80, type: 'intersection' },
@@ -737,10 +738,10 @@ export const INITIAL_HL7_STREAM: HL7Message[] = [
     timestamp: '10:42:15',
     messageType: 'ADT^A01',
     description: 'Tiếp nhận bệnh nhân mới vào phân hệ nội trú khoa Tim Mạch',
-    sender: 'GRANDCARE-HIS',
+    sender: 'GOCARE-HIS',
     receiver: 'HL7-FHIR-CORE',
     status: 'ACK',
-    rawPayload: 'MSH|^~\\&|GRANDCARE-HIS|CAMPUS-01|HL7-FHIR-CORE|AWS-VN|20260412104215||ADT^A01|MSG-9821|P|2.5.1\nPID|1||EHR-2026-0891^^^GC^MR||Nguyễn Văn An||19580412|M\nPV1|1|I|ROOM-302^BED-01|CARD|||DOC-01^GS.TS Nguyễn Anh Tuấn',
+    rawPayload: 'MSH|^~\\&|GOCARE-HIS|CAMPUS-01|HL7-FHIR-CORE|AWS-VN|20260412104215||ADT^A01|MSG-9821|P|2.5.1\nPID|1||EHR-2026-0891^^^GC^MR||Nguyễn Văn An||19580412|M\nPV1|1|I|ROOM-302^BED-01|CARD|||DOC-01^GS.TS Nguyễn Anh Tuấn',
   },
   {
     id: 'HL7-02',

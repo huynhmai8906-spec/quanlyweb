@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavigationTab } from '../types';
+import { APP_IMAGES, SAFE_FALLBACK_AVATAR } from '../assets/images';
 
 interface SidebarProps {
   currentTab: NavigationTab;
@@ -78,18 +79,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className="fixed left-0 top-0 h-full w-72 bg-surface-clean shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-r border-outline-variant/30 z-50 flex flex-col justify-between overflow-y-auto">
       <div className="p-space-lg">
-        {/* Brand header */}
-        <div className="flex items-center gap-space-sm mb-space-lg">
-          <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center font-bold text-xl shadow-md shrink-0">
-            G+
+        {/* Brand header with GoCare Logo */}
+        <div className="mb-space-lg">
+          <div className="bg-white rounded-2xl p-2.5 border border-outline-variant/30 shadow-xs flex items-center justify-center transition-all hover:shadow-sm">
+            <img
+              src="/assets/aistudio/image_8e7aadb2.png"
+              alt="GoCare - An tâm chăm sóc, kết nối tức thì"
+              className="h-16 w-auto max-w-full object-contain"
+            />
           </div>
-          <div className="min-w-0">
-            <h1 className="font-headline-sm text-headline-sm text-primary tracking-tight truncate">
-              Viện Quốc Tế GrandCare
-            </h1>
-            <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-              Tổ Hợp Y Tế & Nghỉ Dưỡng Lão Khoa
-            </p>
+          <div className="mt-2.5 px-1 flex items-center justify-between text-xs">
+            <span className="font-bold text-[#0066CC] flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-[#0066CC] animate-pulse"></span>
+              Hệ Thống Y Tế GoCare
+            </span>
+            <span className="text-[10px] font-bold text-[#FF7A00] bg-orange-50 border border-orange-200/60 px-2 py-0.5 rounded-full">
+              JCI Standard
+            </span>
           </div>
         </div>
 
@@ -151,10 +157,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-space-lg border-t border-outline-variant/20 bg-surface-container-lowest/70">
         <div className="flex items-center gap-3">
           <img
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+            src={APP_IMAGES.doctorVietnameseFemale}
             alt="BSCKI Huỳnh Mai"
             className="w-10 h-10 rounded-full object-cover border border-outline-variant/40 shrink-0"
             referrerPolicy="no-referrer"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+            }}
           />
           <div className="min-w-0 flex-1">
             <div className="font-title-sm text-title-sm text-on-surface font-bold truncate">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Patient, VitalSigns } from '../types';
+import { APP_IMAGES, SAFE_FALLBACK_AVATAR } from '../assets/images';
 
 interface PatientsViewProps {
   patients: Patient[];
@@ -169,7 +170,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
       labResults: [
         { test: 'Đường huyết mao mạch', value: '5.4', unit: 'mmol/L', reference: '3.9 - 6.4', status: 'normal' },
       ],
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB947IGp0Sj2ZwjUxj6CetyO6EOScLMDtdqCECMkUlhLV47tn',
+      avatar: APP_IMAGES.defaultPatient,
     };
 
     onAddPatient(created);
@@ -408,10 +409,13 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <img
-                          src={pat.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU'}
+                          src={pat.avatar || APP_IMAGES.defaultPatient}
                           alt={pat.name}
                           className="w-9 h-9 rounded-full object-cover border border-outline-variant/30 shrink-0"
                           referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                          }}
                         />
                         <div className="min-w-0">
                           <div className="text-xs font-bold text-on-surface truncate flex items-center gap-1.5">
@@ -468,10 +472,13 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
                     <div className="flex items-center gap-4">
                       <img
-                        src={currentPatient.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU'}
+                        src={currentPatient.avatar || APP_IMAGES.defaultPatient}
                         alt={currentPatient.name}
                         className="w-16 h-16 rounded-2xl object-cover border-2 border-primary/20 shadow-xs"
                         referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                        }}
                       />
                       <div>
                         <div className="flex items-center gap-2.5">
@@ -947,10 +954,13 @@ OBX|2|NM|2708-6^Oxygen Saturation||${currentPatient.vitals.spo2}|%|>95|N|||F`}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <img
-                      src={pat.avatar || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU'}
+                      src={pat.avatar || APP_IMAGES.defaultPatient}
                       alt={pat.name}
                       className="w-12 h-12 rounded-xl object-cover border border-outline-variant/30"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                      }}
                     />
                     <div>
                       <h4 className="font-title-md text-sm font-bold text-on-surface">

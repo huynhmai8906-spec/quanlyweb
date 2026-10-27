@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Doctor } from '../types';
+import { APP_IMAGES, SAFE_FALLBACK_AVATAR } from '../assets/images';
 
 interface DoctorsViewProps {
   doctors: Doctor[];
@@ -61,7 +62,7 @@ export const DoctorsView: React.FC<DoctorsViewProps> = ({
       shifts: docShifts,
       rating: 4.95,
       consultationCount: 1,
-      avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU',
+      avatar: APP_IMAGES.doctorVietnameseMale,
     };
 
     onAddDoctor(newDoc);
@@ -197,10 +198,13 @@ export const DoctorsView: React.FC<DoctorsViewProps> = ({
                 <div>
                   <div className="flex items-start gap-4 mb-3">
                     <img
-                      src={doc.avatar}
+                      src={doc.avatar || APP_IMAGES.defaultDoctor}
                       alt={doc.name}
                       className="w-16 h-16 rounded-2xl object-cover border-2 border-primary/20 shrink-0 group-hover:scale-105 transition-transform"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = SAFE_FALLBACK_AVATAR;
+                      }}
                     />
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-primary/10 text-primary">

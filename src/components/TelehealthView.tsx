@@ -17,20 +17,24 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
   const currentPatient =
     patients.find((p) => p.id === selectedPatientId) || patients[0];
 
-  // Video call controls
+  // Camera source mode: 'real' (physical webcam) or 'virtual' (clinical doctor simulation)
+  const [cameraMode, setCameraMode] = useState<'real' | 'virtual'>('virtual');
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [viewLayout, setViewLayout] = useState<'local_main' | 'split' | 'remote_main'>('local_main');
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [hasStartedCamera, setHasStartedCamera] = useState(false);
+
+  // Permission & error management
+  const [cameraPermissionState, setCameraPermissionState] = useState<'idle' | 'prompt' | 'granted' | 'denied'>('idle');
+  const [cameraErrorNotice, setCameraErrorNotice] = useState<string | null>(null);
+  const [isConnectingCamera, setIsConnectingCamera] = useState(false);
 
   // Available devices
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
   // Audio volume metering
-  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [audioLevel, setAudioLevel] = useState<number>(35);
 
   // Notes & Timeline
   const [consultationNotes, setConsultationNotes] = useState(
@@ -58,72 +62,17 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
     }
   };
 
-  // Start Real User Webcam
-  const startCamera = async (deviceId?: string) => {
-    try {
-      setCameraError(null);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+  // Safe attach stream to video elements
+  const attachStreamToActiveVideos = (stream: MediaStream) => {
+    [mainVideoRef, pipVideoRef, splitVideoRef, modalVideoRef].forEach((ref) => {
+      if (ref.current) {
+        ref.current.srcObject = stream;
+        ref.current.play().catch(() => {});
       }
-
-      const constraints: MediaStreamConstraints = {
-        video: deviceId
-          ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
-          : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-        audio: true,
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      setHasStartedCamera(true);
-      setIsCamOn(true);
-      setIsMicOn(true);
-
-      // Attach stream to active video elements
-      attachStreamToVideos(stream);
-
-      // Setup audio analyzer for volume meter
-      setupAudioMeter(stream);
-
-      // Enumerate devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const vDevs = devices.filter((d) => d.kind === 'videoinput');
-      setVideoDevices(vDevs);
-      if (!selectedDeviceId && vDevs.length > 0) {
-        setSelectedDeviceId(vDevs[0].deviceId);
-      }
-    } catch (err: any) {
-      console.warn('Lỗi kết nối camera:', err);
-      const msg =
-        err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
-          ? 'Trình duyệt chưa được cấp quyền truy cập Camera/Microphone. Vui lòng nhấn vào biểu tượng ổ khóa/camera trên thanh địa chỉ URL và chọn "Cho phép" (Allow).'
-          : err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError'
-          ? 'Không tìm thấy thiết bị Camera trên máy tính. Hệ thống đang chuyển sang chế độ mô phỏng hình ảnh y tế.'
-          : `Không thể khởi động camera: ${err.message || 'Lỗi thiết bị'}`;
-      setCameraError(msg);
-      setHasStartedCamera(false);
-    }
+    });
   };
 
-  const attachStreamToVideos = (stream: MediaStream) => {
-    if (mainVideoRef.current) {
-      mainVideoRef.current.srcObject = stream;
-      mainVideoRef.current.play().catch(() => {});
-    }
-    if (pipVideoRef.current) {
-      pipVideoRef.current.srcObject = stream;
-      pipVideoRef.current.play().catch(() => {});
-    }
-    if (splitVideoRef.current) {
-      splitVideoRef.current.srcObject = stream;
-      splitVideoRef.current.play().catch(() => {});
-    }
-    if (modalVideoRef.current) {
-      modalVideoRef.current.srcObject = stream;
-      modalVideoRef.current.play().catch(() => {});
-    }
-  };
-
+  // Safe Audio Meter Setup
   const setupAudioMeter = (stream: MediaStream) => {
     try {
       const audioTracks = stream.getAudioTracks();
@@ -137,7 +86,7 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
       }
       const audioCtx = audioContextRef.current;
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().catch(() => {});
       }
 
       const source = audioCtx.createMediaStreamSource(stream);
@@ -162,14 +111,176 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
 
       checkVolume();
     } catch (e) {
-      console.warn('Audio metering error:', e);
+      console.warn('Audio metering fallback:', e);
     }
   };
 
-  // Auto-init camera on component mount
-  useEffect(() => {
-    startCamera();
+  // Start Real Physical Camera with Resilient Fallback
+  const requestRealCamera = async (deviceId?: string) => {
+    setIsConnectingCamera(true);
+    setCameraErrorNotice(null);
 
+    // Stop any existing stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    try {
+      // Step 1: Try video + audio
+      let stream: MediaStream;
+      const videoConstraint = deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        : { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' };
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraint,
+          audio: true,
+        });
+      } catch (audioErr) {
+        // Step 2: Fallback to video only if audio failed (e.g. no microphone or mic permission denied)
+        console.warn('Yêu cầu audio thất bại, thử lại chỉ với video:', audioErr);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraint,
+          audio: false,
+        });
+      }
+
+      streamRef.current = stream;
+      setCameraMode('real');
+      setCameraPermissionState('granted');
+      setIsCamOn(true);
+      setIsConnectingCamera(false);
+
+      // Attach stream to videos
+      attachStreamToActiveVideos(stream);
+
+      // Setup audio analyzer
+      setupAudioMeter(stream);
+
+      // Enumerate available devices
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const vDevs = devices.filter((d) => d.kind === 'videoinput');
+        setVideoDevices(vDevs);
+        if (!selectedDeviceId && vDevs.length > 0) {
+          setSelectedDeviceId(vDevs[0].deviceId);
+        }
+      } catch {}
+
+      notify('Đã Kết Nối Webcam Thành Công!', 'Tín hiệu video thực tế từ camera của bạn đang được phát sóng.', 'success');
+    } catch (err: any) {
+      console.warn('Lỗi kết nối camera thực tế:', err);
+      setIsConnectingCamera(false);
+      setCameraPermissionState('denied');
+      setCameraMode('virtual'); // Auto fallback to virtual clinical camera
+
+      let friendlyMsg = 'Không thể truy cập camera thực tế.';
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        friendlyMsg = 'Trình duyệt hoặc sandbox chưa cấp quyền Camera/Microphone. Hệ thống đã kích hoạt Camera Mô Phỏng Y Khoa để hội chẩn không bị gián đoạn.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        friendlyMsg = 'Không tìm thấy thiết bị webcam vật lý trên máy tính. Đang dùng Camera Mô Phỏng Y Khoa.';
+      } else {
+        friendlyMsg = `Lỗi thiết bị: ${err.message || 'Không thể mở luồng video'}. Đang dùng Camera Mô Phỏng Y Khoa.`;
+      }
+      setCameraErrorNotice(friendlyMsg);
+      notify('Chuyển Sang Camera Mô Phỏng', friendlyMsg, 'warning');
+    }
+  };
+
+  // Toggle Camera Video Track or Virtual Camera
+  const handleToggleCam = () => {
+    if (cameraMode === 'real' && streamRef.current) {
+      const nextState = !isCamOn;
+      setIsCamOn(nextState);
+      streamRef.current.getVideoTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+      notify(
+        nextState ? 'Đã Mở Camera' : 'Đã Tắt Camera',
+        nextState ? 'Tín hiệu video đang phát trực tiếp.' : 'Đã tạm dừng truyền tín hiệu camera.',
+        'success'
+      );
+    } else {
+      const nextState = !isCamOn;
+      setIsCamOn(nextState);
+      notify(
+        nextState ? 'Đã Mở Camera' : 'Đã Tắt Camera',
+        nextState ? 'Camera đang hoạt động.' : 'Đã tắt camera.',
+        'success'
+      );
+    }
+  };
+
+  // Toggle Mic
+  const handleToggleMic = () => {
+    const nextState = !isMicOn;
+    setIsMicOn(nextState);
+    if (cameraMode === 'real' && streamRef.current) {
+      streamRef.current.getAudioTracks().forEach((t) => {
+        t.enabled = nextState;
+      });
+    }
+    notify(
+      nextState ? 'Đã Bật Microphone' : 'Đã Tắt Tiếng Microphone',
+      nextState ? 'Âm thanh của bạn đang được truyền tới các đầu cầu.' : 'Đã tắt tiếng (Mute) microphone.',
+      nextState ? 'success' : 'warning'
+    );
+  };
+
+  // Screen Sharing
+  const handleToggleScreenShare = async () => {
+    if (isScreenSharing) {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+      }
+      setIsScreenSharing(false);
+      if (cameraMode === 'real' && streamRef.current) {
+        attachStreamToActiveVideos(streamRef.current);
+      }
+      notify('Dừng Chia Sẻ Màn Hình', 'Đã quay trở lại tín hiệu camera.', 'success');
+      return;
+    }
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        notify('Không Hỗ Trợ', 'Trình duyệt hiện tại không hỗ trợ tính năng chia sẻ màn hình.', 'warning');
+        return;
+      }
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      screenStreamRef.current = screenStream;
+      setIsScreenSharing(true);
+
+      if (mainVideoRef.current) {
+        mainVideoRef.current.srcObject = screenStream;
+        mainVideoRef.current.play().catch(() => {});
+      }
+
+      screenStream.getVideoTracks()[0].onended = () => {
+        setIsScreenSharing(false);
+        screenStreamRef.current = null;
+        if (cameraMode === 'real' && streamRef.current) {
+          attachStreamToActiveVideos(streamRef.current);
+        }
+      };
+
+      notify('Đang Chia Sẻ Màn Hình', 'Toàn bộ chuyên gia có thể theo dõi màn hình của bạn.', 'success');
+    } catch (e: any) {
+      console.warn('Lỗi chia sẻ màn hình:', e);
+    }
+  };
+
+  // Re-attach video stream whenever layout or modal changes
+  useEffect(() => {
+    if (cameraMode === 'real' && streamRef.current) {
+      attachStreamToActiveVideos(streamRef.current);
+    }
+  }, [viewLayout, showDeviceModal, cameraMode, isCamOn, isScreenSharing]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -185,91 +296,6 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
       }
     };
   }, []);
-
-  // Update video element bindings when layout changes or modal opens
-  useEffect(() => {
-    if (streamRef.current) {
-      attachStreamToVideos(streamRef.current);
-    }
-  }, [viewLayout, showDeviceModal, isCamOn, isScreenSharing]);
-
-  // Toggle Camera Video Track
-  const handleToggleCam = () => {
-    if (!streamRef.current) {
-      startCamera(selectedDeviceId);
-      return;
-    }
-    const nextState = !isCamOn;
-    setIsCamOn(nextState);
-    streamRef.current.getVideoTracks().forEach((t) => {
-      t.enabled = nextState;
-    });
-    notify(
-      nextState ? 'Đã Mở Camera' : 'Đã Tắt Camera',
-      nextState ? 'Tín hiệu video trực tiếp từ webcam của bạn đang được phát sóng.' : 'Đã tạm dừng truyền tín hiệu camera của bạn.',
-      'success'
-    );
-  };
-
-  // Toggle Mic Audio Track
-  const handleToggleMic = () => {
-    if (!streamRef.current) return;
-    const nextState = !isMicOn;
-    setIsMicOn(nextState);
-    streamRef.current.getAudioTracks().forEach((t) => {
-      t.enabled = nextState;
-    });
-    notify(
-      nextState ? 'Đã Bật Microphone' : 'Đã Tắt Tiếng Microphone',
-      nextState ? 'Âm thanh của bạn đang được truyền tới các đầu cầu hội chẩn.' : 'Đã tắt tiếng (Mute) microphone.',
-      nextState ? 'success' : 'warning'
-    );
-  };
-
-  // Screen Sharing
-  const handleToggleScreenShare = async () => {
-    if (isScreenSharing) {
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((t) => t.stop());
-        screenStreamRef.current = null;
-      }
-      setIsScreenSharing(false);
-      if (streamRef.current) {
-        attachStreamToVideos(streamRef.current);
-      }
-      notify('Dừng Chia Sẻ Màn Hình', 'Đã quay trở lại tín hiệu camera trực tiếp.', 'success');
-      return;
-    }
-
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      screenStreamRef.current = screenStream;
-      setIsScreenSharing(true);
-
-      if (mainVideoRef.current) {
-        mainVideoRef.current.srcObject = screenStream;
-        mainVideoRef.current.play().catch(() => {});
-      }
-
-      screenStream.getVideoTracks()[0].onended = () => {
-        setIsScreenSharing(false);
-        screenStreamRef.current = null;
-        if (streamRef.current) {
-          attachStreamToVideos(streamRef.current);
-        }
-      };
-
-      notify('Đang Chia Sẻ Màn Hình', 'Toàn bộ chuyên gia trong phòng họp có thể theo dõi màn hình của bạn.', 'success');
-    } catch (e: any) {
-      console.warn('Lỗi chia sẻ màn hình:', e);
-    }
-  };
-
-  // Switch camera device
-  const handleDeviceChange = (devId: string) => {
-    setSelectedDeviceId(devId);
-    startCamera(devId);
-  };
 
   const handleSyncCalendar = () => {
     setIsSyncingCalendar(true);
@@ -292,14 +318,20 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
               </span>
               <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse"></span>
-                Trực Tiếp (Live WebRTC Room #01)
+                Trực Tiếp (Live Room #01)
               </span>
-              {hasStartedCamera && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                  Camera Thật Đang Bật
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                  cameraMode === 'real'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-primary/10 text-primary'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[12px]">
+                  {cameraMode === 'real' ? 'videocam' : 'smart_display'}
                 </span>
-              )}
+                <span>{cameraMode === 'real' ? 'Webcam Thật Đang Bật' : 'Camera Ảo Y Khoa'}</span>
+              </span>
             </div>
             <h2 className="font-headline-sm text-xl text-primary font-bold mt-1">
               Lịch Khám Chuyên Khoa & Hội Chẩn Telehealth Trực Tuyến
@@ -307,43 +339,76 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* View Layout Switcher */}
+            {/* Camera Switcher Toggle */}
+            <div className="p-1 bg-surface-container rounded-xl flex items-center text-xs font-semibold">
+              <button
+                onClick={() => requestRealCamera(selectedDeviceId)}
+                disabled={isConnectingCamera}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  cameraMode === 'real'
+                    ? 'bg-primary text-white shadow-xs font-bold'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+                title="Bật webcam thật của bạn"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {isConnectingCamera ? 'sync' : 'videocam'}
+                </span>
+                <span>{isConnectingCamera ? 'Đang Kết Nối...' : 'Webcam Thật'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setCameraMode('virtual');
+                  setIsCamOn(true);
+                  notify('Chuyển Sang Camera Mô Phỏng', 'Đang phát luồng video mô phỏng y khoa chuẩn 4K.', 'success');
+                }}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  cameraMode === 'virtual'
+                    ? 'bg-primary text-white shadow-xs font-bold'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+                title="Sử dụng camera mô phỏng y khoa"
+              >
+                <span className="material-symbols-outlined text-[16px]">smart_display</span>
+                <span>Camera Ảo</span>
+              </button>
+            </div>
+
+            {/* Layout switcher */}
             <div className="p-1 bg-surface-container rounded-xl flex items-center text-xs font-semibold">
               <button
                 onClick={() => setViewLayout('local_main')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 py-1.5 rounded-lg transition-all ${
                   viewLayout === 'local_main'
                     ? 'bg-surface-clean text-primary shadow-xs font-bold'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
-                title="Camera thật của bạn làm màn hình chính"
+                title="Bạn làm màn hình chính"
               >
-                <span className="material-symbols-outlined text-[16px]">videocam</span>
-                <span>Camera Bạn</span>
+                Bạn
               </button>
               <button
                 onClick={() => setViewLayout('split')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 py-1.5 rounded-lg transition-all ${
                   viewLayout === 'split'
                     ? 'bg-surface-clean text-primary shadow-xs font-bold'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
-                title="Chia đôi màn hình: Bạn + Chuyên gia quốc tế"
+                title="Chia đôi màn hình"
               >
-                <span className="material-symbols-outlined text-[16px]">vertical_split</span>
-                <span>Chia Đôi</span>
+                Chia Đôi
               </button>
               <button
                 onClick={() => setViewLayout('remote_main')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 py-1.5 rounded-lg transition-all ${
                   viewLayout === 'remote_main'
                     ? 'bg-surface-clean text-primary shadow-xs font-bold'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
-                title="Chuyên gia Cleveland Clinic chính, bạn trong khung nhỏ"
+                title="Chuyên gia Cleveland Clinic chính"
               >
-                <span className="material-symbols-outlined text-[16px]">co_present</span>
-                <span>Chuyên Gia</span>
+                Chuyên Gia
               </button>
             </div>
 
@@ -367,30 +432,36 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
               >
                 sync
               </span>
-              <span>{isSyncingCalendar ? 'Đang Đồng Bộ...' : 'Đồng Bộ Lịch Google'}</span>
+              <span>{isSyncingCalendar ? 'Đang Đồng Bộ...' : 'Đồng Bộ Google Calendar'}</span>
             </button>
           </div>
         </div>
 
-        {/* Camera Permission Alert Banner if any error */}
-        {cameraError && (
-          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-amber-700 text-[24px] shrink-0 mt-0.5">
-                videocam_off
+        {/* Gentle Notice if Camera was blocked or switched */}
+        {cameraErrorNotice && (
+          <div className="p-3.5 rounded-2xl bg-surface-container-low border border-primary/20 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-primary text-[20px] shrink-0">
+                info
               </span>
-              <div>
-                <div className="font-bold text-sm">Chưa Thể Bật Camera Thực Tế</div>
-                <div className="mt-0.5 leading-relaxed">{cameraError}</div>
-              </div>
+              <span className="text-on-surface">
+                {cameraErrorNotice}
+              </span>
             </div>
-            <button
-              onClick={() => startCamera(selectedDeviceId)}
-              className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-bold shrink-0 flex items-center gap-1.5 shadow-2xs"
-            >
-              <span className="material-symbols-outlined text-[18px]">refresh</span>
-              <span>Thử Lại Kết Nối</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => requestRealCamera(selectedDeviceId)}
+                className="px-3 py-1.5 rounded-lg bg-primary text-white font-bold hover:bg-emerald-deep transition-colors"
+              >
+                Thử Lại Webcam
+              </button>
+              <button
+                onClick={() => setCameraErrorNotice(null)}
+                className="p-1 rounded-lg text-on-surface-variant hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -417,11 +488,9 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="font-bold">Grand Round Quốc Tế: Ca {currentPatient.name}</span>
                   <span className="font-mono text-[11px] text-slate-300">({currentPatient.id})</span>
-                  {hasStartedCamera && (
-                    <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300 font-bold text-[10px] border border-emerald-500/40">
-                      LIVE WEBCAM ON
-                    </span>
-                  )}
+                  <span className="px-2 py-0.5 rounded bg-emerald-600/80 font-mono text-[10px] font-bold">
+                    {cameraMode === 'real' ? 'LIVE WEBCAM' : 'VIRTUAL CLINICAL FEED'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 font-mono text-[11px]">
                   <span className="px-2 py-0.5 rounded bg-emerald-600/80 font-bold">4K UHD</span>
@@ -431,30 +500,51 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
 
               {/* VIDEO VIEWPORT CONTAINER */}
               <div className="relative w-full h-[380px] lg:h-[480px] bg-slate-900 overflow-hidden">
-                {/* LAYOUT 1: LOCAL MAIN (User's real webcam is big, remote is in PIP) */}
+                {/* LAYOUT 1: LOCAL MAIN (Doctor feed is big, remote in PIP) */}
                 {viewLayout === 'local_main' && (
                   <div className="w-full h-full relative flex items-center justify-center bg-black">
                     {isCamOn ? (
-                      <video
-                        ref={mainVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className={`w-full h-full object-cover ${!isScreenSharing ? 'scale-x-[-1]' : ''}`}
-                      />
+                      cameraMode === 'real' && streamRef.current ? (
+                        <video
+                          ref={mainVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className={`w-full h-full object-cover ${!isScreenSharing ? 'scale-x-[-1]' : ''}`}
+                        />
+                      ) : (
+                        /* Virtual Doctor Video Simulation with realistic clinical HUD */
+                        <div className="w-full h-full relative bg-gradient-to-br from-slate-900 via-slate-950 to-[#00201e] flex items-center justify-center overflow-hidden">
+                          <img
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                            alt="Doctor Feed"
+                            className="w-full h-full object-cover opacity-90 scale-x-[-1]"
+                            referrerPolicy="no-referrer"
+                          />
+                          {/* Face Recognition & Telemetry Overlay */}
+                          <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between">
+                            <div className="flex justify-between items-start">
+                              <div className="p-2 rounded-lg bg-black/50 backdrop-blur-xs border border-emerald-500/30 text-emerald-300 font-mono text-[11px]">
+                                <div>GÓC NHÌN BÁC SĨ (CLINICAL FEED)</div>
+                                <div className="text-white text-xs font-bold">BSCKI. Huỳnh Mai</div>
+                                <div className="text-[10px] text-slate-300">GrandCare Medical Center</div>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-end">
+                              <div className="flex items-center gap-2 bg-black/60 px-2.5 py-1 rounded-lg text-emerald-400 font-mono text-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span>ECG SYNC: {currentPatient.vitals.hr} bpm</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
                     ) : (
                       <div className="flex flex-col items-center justify-center text-slate-500">
                         <span className="material-symbols-outlined text-[64px]">videocam_off</span>
                         <span className="text-xs mt-2 font-medium">Camera của bạn đang tắt</span>
                       </div>
                     )}
-
-                    {/* Badge: Doctor You */}
-                    <div className="absolute top-14 left-4 z-10 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-xs flex items-center gap-2 border border-white/10">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span className="font-bold">Bạn (BSCKI. Huỳnh Mai - Trưởng Kíp GrandCare)</span>
-                      <span className="text-[10px] text-emerald-300 font-mono">1080p @ 60fps</span>
-                    </div>
 
                     {/* PIP Gallery: Remote Doctors */}
                     <div className="absolute bottom-16 right-4 z-20 flex flex-col sm:flex-row gap-2.5">
@@ -487,28 +577,37 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                   </div>
                 )}
 
-                {/* LAYOUT 2: SPLIT SCREEN (Real Camera on Left, Remote Doctor on Right) */}
+                {/* LAYOUT 2: SPLIT SCREEN (Doctor on Left, Remote on Right) */}
                 {viewLayout === 'split' && (
                   <div className="w-full h-full grid grid-cols-1 md:grid-cols-2 gap-1 bg-black">
                     {/* Left: Your Camera */}
                     <div className="relative h-full flex items-center justify-center bg-slate-900 overflow-hidden">
                       {isCamOn ? (
-                        <video
-                          ref={splitVideoRef}
-                          autoPlay
-                          playsInline
-                          muted
-                          className="w-full h-full object-cover scale-x-[-1]"
-                        />
+                        cameraMode === 'real' && streamRef.current ? (
+                          <video
+                            ref={splitVideoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className="w-full h-full object-cover scale-x-[-1]"
+                          />
+                        ) : (
+                          <img
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                            alt="Doctor Feed"
+                            className="w-full h-full object-cover scale-x-[-1]"
+                            referrerPolicy="no-referrer"
+                          />
+                        )
                       ) : (
                         <div className="text-slate-500 text-center">
                           <span className="material-symbols-outlined text-[48px]">videocam_off</span>
-                          <div className="text-xs mt-1">Camera của bạn đang tắt</div>
+                          <div className="text-xs mt-1">Camera đang tắt</div>
                         </div>
                       )}
                       <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded bg-black/70 text-white text-[11px] font-bold flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        <span>Bạn (Camera Trực Tiếp)</span>
+                        <span>Bạn ({cameraMode === 'real' ? 'Webcam Thật' : 'Camera Ảo'})</span>
                       </div>
                     </div>
 
@@ -527,7 +626,7 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                   </div>
                 )}
 
-                {/* LAYOUT 3: REMOTE MAIN (Cleveland Clinic is Main, Your Real Webcam in PIP) */}
+                {/* LAYOUT 3: REMOTE MAIN (Cleveland Clinic is Main, Your Feed in PIP) */}
                 {viewLayout === 'remote_main' && (
                   <div className="w-full h-full relative flex items-center justify-center bg-black">
                     <img
@@ -537,17 +636,26 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                       referrerPolicy="no-referrer"
                     />
 
-                    {/* PIP: Your Real Webcam */}
+                    {/* PIP: Doctor Camera */}
                     <div className="absolute bottom-16 right-4 z-20 flex gap-2">
                       <div className="w-36 sm:w-48 h-24 sm:h-32 rounded-xl bg-slate-800 border-2 border-emerald-500 overflow-hidden shadow-2xl relative">
                         {isCamOn ? (
-                          <video
-                            ref={pipVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className="w-full h-full object-cover scale-x-[-1]"
-                          />
+                          cameraMode === 'real' && streamRef.current ? (
+                            <video
+                              ref={pipVideoRef}
+                              autoPlay
+                              playsInline
+                              muted
+                              className="w-full h-full object-cover scale-x-[-1]"
+                            />
+                          ) : (
+                            <img
+                              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                              alt="Doctor Feed"
+                              className="w-full h-full object-cover scale-x-[-1]"
+                              referrerPolicy="no-referrer"
+                            />
+                          )
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-500">
                             <span className="material-symbols-outlined text-[28px]">videocam_off</span>
@@ -555,32 +663,10 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                           </div>
                         )}
                         <div className="absolute bottom-1 left-1.5 text-[10px] bg-emerald-950/80 px-1.5 py-0.5 rounded text-emerald-300 font-bold truncate max-w-[90%]">
-                          Bạn (Live Camera)
+                          Bạn ({cameraMode === 'real' ? 'Live Webcam' : 'Camera Ảo'})
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Floating Action Hint if Camera not yet started */}
-                {!hasStartedCamera && !cameraError && (
-                  <div className="absolute inset-0 z-30 bg-black/70 flex flex-col items-center justify-center p-6 text-center text-white">
-                    <span className="material-symbols-outlined text-[56px] text-emerald-400 mb-2">
-                      videocam
-                    </span>
-                    <h3 className="font-headline-sm text-lg font-bold">
-                      Kích Hoạt Camera Thực Tế Để Hội Chẩn
-                    </h3>
-                    <p className="text-xs text-slate-300 max-w-md mt-1 mb-4 leading-relaxed">
-                      Sử dụng webcam thật trên máy tính của bạn để truyền hình ảnh trực tiếp độ phân giải cao tới hội đồng y khoa.
-                    </p>
-                    <button
-                      onClick={() => startCamera(selectedDeviceId)}
-                      className="px-5 py-2.5 rounded-xl bg-primary hover:bg-emerald-deep text-on-primary font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">photo_camera</span>
-                      <span>Bật Camera Của Bạn Ngay</span>
-                    </button>
                   </div>
                 )}
 
@@ -605,7 +691,7 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-all ${
                       isCamOn ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-red-700'
                     }`}
-                    title={isCamOn ? 'Tắt camera thật' : 'Bật camera thật'}
+                    title={isCamOn ? 'Tắt camera' : 'Bật camera'}
                   >
                     <span className="material-symbols-outlined text-[20px]">
                       {isCamOn ? 'videocam' : 'videocam_off'}
@@ -623,20 +709,27 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                     <span className="material-symbols-outlined text-[20px]">screen_share</span>
                   </button>
 
-                  {/* Switch to another Camera if multiple exist */}
-                  {videoDevices.length > 1 && (
-                    <button
-                      onClick={() => {
-                        const currentIndex = videoDevices.findIndex((d) => d.deviceId === selectedDeviceId);
-                        const nextDevice = videoDevices[(currentIndex + 1) % videoDevices.length];
-                        handleDeviceChange(nextDevice.deviceId);
-                      }}
-                      className="w-10 h-10 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center text-white transition-all"
-                      title="Đổi camera khác"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">switch_camera</span>
-                    </button>
-                  )}
+                  {/* Switch to Real Webcam if currently on virtual */}
+                  <button
+                    onClick={() => {
+                      if (cameraMode === 'virtual') {
+                        requestRealCamera(selectedDeviceId);
+                      } else {
+                        setCameraMode('virtual');
+                      }
+                    }}
+                    className={`h-10 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all ${
+                      cameraMode === 'real'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                    }`}
+                    title={cameraMode === 'real' ? 'Đang dùng Webcam thật. Bấm để chuyển sang camera ảo' : 'Bấm để kết nối webcam thật của máy tính'}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {cameraMode === 'real' ? 'photo_camera' : 'videocam'}
+                    </span>
+                    <span>{cameraMode === 'real' ? 'Đang Dùng Webcam' : 'Bật Webcam Thật'}</span>
+                  </button>
 
                   {/* End Call Button */}
                   <button
@@ -645,9 +738,9 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                         streamRef.current.getTracks().forEach((t) => t.stop());
                         streamRef.current = null;
                       }
-                      setHasStartedCamera(false);
+                      setCameraMode('virtual');
                       setIsCamOn(false);
-                      notify('Phiên Hội Chẩn Đã Kết Thúc', 'Đã ngắt kết nối video và lưu biên bản y khoa.', 'success');
+                      notify('Phiên Hội Chẩn Đã Hoàn Tất', 'Đã lưu biên bản y khoa vào hồ sơ EHR.', 'success');
                     }}
                     className="h-10 px-4 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors ml-2"
                   >
@@ -683,24 +776,26 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-title-lg text-sm font-bold text-on-surface flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-[20px]">videocam</span>
-                  <span>Thiết Bị Camera Trực Tiếp</span>
+                  <span>Trạng Thái Thiết Bị Camera</span>
                 </h4>
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    hasStartedCamera && isCamOn
+                    cameraMode === 'real'
                       ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-surface-container text-on-surface-variant'
+                      : 'bg-primary/10 text-primary'
                   }`}
                 >
-                  {hasStartedCamera && isCamOn ? 'Hoạt Động' : 'Tắt'}
+                  {cameraMode === 'real' ? 'Webcam Thật 100%' : 'Camera Ảo Y Khoa'}
                 </span>
               </div>
 
               <div className="space-y-2 text-xs">
                 <div className="p-2.5 rounded-xl bg-surface-clean border border-outline-variant/20 flex justify-between">
-                  <span className="text-on-surface-variant">Camera:</span>
+                  <span className="text-on-surface-variant">Nguồn Video:</span>
                   <span className="font-semibold text-primary truncate max-w-[180px]">
-                    {videoDevices.find((d) => d.deviceId === selectedDeviceId)?.label || 'Webcam mặc định máy tính'}
+                    {cameraMode === 'real'
+                      ? videoDevices.find((d) => d.deviceId === selectedDeviceId)?.label || 'Webcam Máy Tính'
+                      : 'Camera Ảo Bác Sĩ Lâm Sàng'}
                   </span>
                 </div>
 
@@ -718,13 +813,26 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => startCamera(selectedDeviceId)}
-                  className="w-full py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs flex items-center justify-center gap-1.5 transition-colors mt-1"
-                >
-                  <span className="material-symbols-outlined text-[16px]">autorenew</span>
-                  <span>Khởi Động Lại Tín Hiệu Camera</span>
-                </button>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => requestRealCamera(selectedDeviceId)}
+                    disabled={isConnectingCamera}
+                    className="flex-1 py-2 rounded-xl bg-primary hover:bg-emerald-deep text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">
+                      {isConnectingCamera ? 'sync' : 'videocam'}
+                    </span>
+                    <span>{isConnectingCamera ? 'Đang Kết Nối...' : 'Bật Webcam Thật'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowDeviceModal(true)}
+                    className="px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold"
+                    title="Cài đặt camera & micro"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">settings</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -833,7 +941,7 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[24px]">tune</span>
                 <h3 className="font-headline-sm text-base text-primary font-bold">
-                  Kiểm Tra Thiết Bị & Camera / Microphone Thực Tế
+                  Kiểm Tra Thiết Bị & Camera / Microphone
                 </h3>
               </div>
               <button
@@ -845,9 +953,9 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
             </div>
 
             <div className="space-y-4 text-xs">
-              {/* Real Camera Preview */}
+              {/* Camera Preview */}
               <div className="h-48 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 relative overflow-hidden">
-                {isCamOn && streamRef.current ? (
+                {cameraMode === 'real' && streamRef.current && isCamOn ? (
                   <video
                     ref={modalVideoRef}
                     autoPlay
@@ -856,23 +964,42 @@ export const TelehealthView: React.FC<TelehealthViewProps> = ({
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-500">
-                    <span className="material-symbols-outlined text-[48px]">videocam_off</span>
-                    <span className="text-xs mt-1">Camera đang tắt</span>
+                  <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                    <img
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkpudh7rAZ96_KIFzvg_Nc-ekqvtyXCIscm3rdlHkrVZ6zoU"
+                      alt="Preview"
+                      className="w-full h-full object-cover opacity-80"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white">
+                      <span className="material-symbols-outlined text-[36px] text-emerald-400 mb-1">
+                        smart_display
+                      </span>
+                      <span className="font-bold">Camera Ảo Y Khoa Sẵn Sàng</span>
+                      <button
+                        onClick={() => requestRealCamera(selectedDeviceId)}
+                        className="mt-2 px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold"
+                      >
+                        Bật Thử Webcam Thật
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 text-emerald-400 text-[10px] font-mono">
-                  {isCamOn ? '● LIVE WEBCAM PREVIEW' : 'OFFLINE'}
+                  {cameraMode === 'real' ? '● LIVE WEBCAM' : '● VIRTUAL CAMERA'}
                 </div>
               </div>
 
-              {/* Camera device selector */}
+              {/* Camera device selector if real webcam */}
               {videoDevices.length > 0 && (
                 <div>
                   <label className="block font-bold text-on-surface mb-1">Chọn Thiết Bị Camera:</label>
                   <select
                     value={selectedDeviceId}
-                    onChange={(e) => handleDeviceChange(e.target.value)}
+                    onChange={(e) => {
+                      setSelectedDeviceId(e.target.value);
+                      requestRealCamera(e.target.value);
+                    }}
                     className="w-full h-9 px-3 rounded-xl bg-surface-container-low border border-outline-variant/30 text-xs"
                   >
                     {videoDevices.map((dev, idx) => (
